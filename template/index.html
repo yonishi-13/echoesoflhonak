@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glacial Lake Outburst Flood (GLOF) Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <!-- Sub-header Section -->
+    <div class="sub-header">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="#">Contact</a>
+    </div>    
+
+    <header id="main-header">
+        <h1>Glacial Lake Outburst Flood (GLOF) Monitoring Dashboard</h1>
+        <p>Real-time monitoring of glacial lake conditions to predict potential outburst floods.</p>
+    
+        <!-- Container for warning and alert modal -->
+        <div class="alert-container">
+            <div id="warning-box" class="warning">
+                <p id="warning-message">Fetching warning details...</p>
+                <p><strong>Current Location:</strong> <span id="location">South Lhonak Lake, Sikkim</span></p>
+            </div>
+    
+            <!-- Modal for High Risk Alert -->
+            <div id="alertModal" class="modal">
+                <div class="modal-content">
+                    <h2>High Risk Alert!</h2>
+                    <p>Immediate action is recommended. Please evacuate the area if necessary and follow safety protocols.</p>
+                    <button onclick="closeModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <div class="dashboard">
+        <!-- Grid 1: Advanced Glacial Lake Surveillance -->
+        <div class="grid" id="grid1">
+            <h2>Advanced Glacial Lake Surveillance</h2>
+            <!-- Serial Data Section -->
+            <h3>Received Data:</h3>
+            <ul>
+                <li id="temp">Temp: Loading...</li>
+                <li id="accel">Accel[X: Loading..., Y: Loading..., Z: Loading...] m/s²</li>
+                <li id="gyro">Gyro[X: Loading..., Y: Loading..., Z: Loading...] rad/s</li>
+                <li id="mag">Mag[X: Loading..., Y: Loading..., Z: Loading...] uT</li>
+            </ul>
+        </div>
+        <!--grid one floating sensor random data -->
+        <script>
+            function getRandomValue(min, max, decimals = 2) {
+                return (Math.random() * (max - min) + min).toFixed(decimals);
+            }
+        
+            function updateSensorData() {
+                document.getElementById("temp").innerHTML = `Temp: ${getRandomValue(-10, 30)} °C`;
+                document.getElementById("accel").innerHTML = `Accel[X: ${getRandomValue(-5, 5)}, Y: ${getRandomValue(-5, 5)}, Z: ${getRandomValue(-5, 5)}] m/s²`;
+                document.getElementById("gyro").innerHTML = `Gyro[X: ${getRandomValue(-3, 3)}, Y: ${getRandomValue(-3, 3)}, Z: ${getRandomValue(-3, 3)}] rad/s`;
+                document.getElementById("mag").innerHTML = `Mag[X: ${getRandomValue(-50, 50)}, Y: ${getRandomValue(-50, 50)}, Z: ${getRandomValue(-50, 50)}] uT`;
+            }
+        
+            setInterval(updateSensorData, 1000); // Update data every second
+        </script>        
+
+        <!-- Grid 2: Weather Station -->
+        <div class="grid" id="grid2">
+            <h2><a href="../templates/weatherStation.html" class="styled-link"><i class="fas fa-cloud-sun"></i><span>Click here to navigate to the Weather Station Dashboard</span></a></h2>
+
+<!-- Add the Font Awesome link in the head -->
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+            <div class="weather-container">
+                <div id="temperature">Temperature: Loading...</div>
+                <div id="pressure">Pressure: Loading...</div>
+                <div id="humidity">Humidity: Loading...</div>
+                <div id="wind_speed">Wind Speed: Loading...</div>
+                <div id="wind_direction">Wind Direction: Loading...</div>
+                <div id="timestamp">Last Updated: Loading...</div>
+            </div>
+        </div>
+        <!-- Grid 4: Satellite Images -->
+        <div class="grid" id="grid4">
+            <h2>Satellite Images</h2>
+            <div class="satellite-image">
+                <img id="satelliteImage" src="" alt="Satellite Image" />
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to show the modal
+        function showModal() {
+            const modal = document.getElementById("alertModal");
+            modal.style.display = "flex"; // Show the modal
+        }
+        
+        // Function to check the header color
+        function checkHeaderColor() {
+            const header = document.getElementById("warning-box");
+            // Check if the header's background color is red
+            if (header.style.backgroundColor === "red") {
+                showModal(); // Show the modal if the color is red
+            }
+        }
+        
+        // Set an interval to periodically check the header's color
+        setInterval(checkHeaderColor, 500); // Check every 500ms
+        
+        // Function to close the modal
+        function closeModal() {
+            const modal = document.getElementById("alertModal");
+            modal.style.display = "none"; // Hide the modal
+        }
+        
+        // Function to change the header color to red for demo
+        function changeHeaderColor() {
+            const header = document.getElementById("warning-box");
+            header.style.backgroundColor = "red"; // Change to red
+        }
+
+       // Function to check if cached data is older than 1 minute (60,000 ms)
+function isCacheExpired() {
+    const cacheTimestamp = localStorage.getItem('dataTimestamp');
+    if (!cacheTimestamp) return true; // No cached data, so fetch new data
+    const currentTime = new Date().getTime();
+    return (currentTime - cacheTimestamp) > 60000; // 1 minute expiration
+}
+
+// Fetch Weather Data from server
+async function fetchWeatherData() {
+    try {
+        const response = await fetch('http://localhost:5000/weather-data');
+        if (!response.ok) throw new Error('Failed to fetch weather data');
+        const data = await response.json();
+
+        // Store the fetched data in localStorage along with a timestamp
+        localStorage.setItem('weatherData', JSON.stringify(data));
+        localStorage.setItem('dataTimestamp', new Date().getTime());
+
+        // Update warning box based on risk level
+        updateWarningBox(data);
+
+        // Update the weather details in the dashboard
+        updateWeatherDetails(data);
+    } catch (error) {
+        console.error("Error fetching weather data:", error);
+    }
+}
+
+// Function to update warning box
+function updateWarningBox(data) {
+    const warningBox = document.getElementById("warning-box");
+    const warningMessage = document.getElementById("warning-message");
+    if (data.risk_level === 0) {
+        warningBox.style.backgroundColor = "green";
+        warningMessage.textContent = "Safe: Low risk of glacial lake outburst flood.";
+    } else if (data.risk_level === 1) {
+        warningBox.style.backgroundColor = "yellow";
+        warningMessage.textContent = "Moderate Warning: Be cautious, risk detected.";
+    } else if (data.risk_level === 2) {
+        warningBox.style.backgroundColor = "red";
+        warningMessage.textContent = "Danger: High risk of glacial lake outburst flood!";
+    }
+}
+
+// Function to update weather details
+function updateWeatherDetails(data) {
+    document.getElementById("temperature").innerText = `Temperature: ${data.temperature} °C`;
+    document.getElementById("pressure").innerText = `Pressure: ${data.pressure} hPa`;
+    document.getElementById("humidity").innerText = `Humidity: ${data.humidity} %`;
+    document.getElementById("wind_speed").innerText = `Wind Speed: ${data.wind_speed} m/s`;
+    document.getElementById("wind_direction").innerText = `Wind Direction: ${data.wind_direction}`;
+    document.getElementById("timestamp").innerText = `Last Updated: ${new Date().toLocaleTimeString()}`;
+}
+
+// Load weather data from localStorage on page load
+window.addEventListener('DOMContentLoaded', function() {
+    const storedData = localStorage.getItem('weatherData');
+    
+    if (storedData && !isCacheExpired()) {
+        // If cached data exists and is not expired, use it
+        const data = JSON.parse(storedData);
+        updateWeatherDetails(data);
+        updateWarningBox(data);
+    } else {
+        // If no data or cached data is expired, fetch new data
+        fetchWeatherData();
+    }
+});
+
+// Fetch new data every 5 seconds regardless of cache status
+setInterval(() => {
+    fetchWeatherData();
+}, 5000);
+
+        // Simulate Satellite Images
+        const satelliteImages = [
+        'https://www.hindustantimes.com/ht-img/img/2023/10/12/1600x900/Experts-warn-about-the-risk-of-another-glacier-lak_1697134980073.jpg',
+        'https://i0.wp.com/eos.org/wp-content/uploads/2023/10/23_10-SL-3.jpg?fit=1017%2C452&ssl=1',
+        'https://swarajya.gumlet.io/swarajya/2023-10/d7afe3da-95d0-4ca3-bd54-2bd52982cd96/1024px_Close_up_view_of_glacier_.jpg?w=1200&h=675&auto=format%2Ccompress&fit=max&enlarge=true',
+        'https://publisher-publish.s3.eu-central-1.amazonaws.com/pb-nepalitimes/swp/asv65r/media/2023100417100_be35e3f15eed641f71b7901e7d61b671037b7f84c0046bbe55cf9698e99c5e23.png',
+        'https://cf-img-a-in.tosshub.com/sites/visualstory/stories/2023_10/story_68007/assets/14.jpeg?time=1696589507',
+        ];
+
+        // Function to simulate satellite image updates
+        function simulateSatelliteImages() {
+            setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * satelliteImages.length);
+                document.getElementById("satelliteImage").src = satelliteImages[randomIndex];
+            }, 5000);
+        }
+
+        // Start the satellite image simulation
+        simulateSatelliteImages();
+    </script>
+</body>
+</html>
