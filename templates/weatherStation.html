@@ -1,0 +1,310 @@
+<!--template weatherStation-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Station Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base Styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+            background-color: #2C3E50; /* Dark Slate Blue */
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px;
+            background-color: #2C3E50;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+            border-bottom: 4px solid #F39C12;
+            color: #ECF0F1;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.8rem;
+            font-weight: 700;
+        }
+
+        header p {
+            margin-top: 10px;
+            font-size: 1.2rem;
+            color: #BDC3C7;
+        }
+
+        header a {
+            display: inline-block;
+            margin-top: 15px;
+            text-decoration: none;
+            color: #F1C40F;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        header a:hover {
+            color: #F39C12;
+        }
+
+        /* Dashboard Grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .chart-container {
+            background: #34495E;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-container:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .chart-container h3 {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            color: #ECF0F1;
+        }
+
+        canvas {
+            width: 100%;
+            height: 250px;
+            max-height: 300px;
+            border-radius: 8px;
+            background-color: #BDC3C7;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #34495E;
+            color: #BDC3C7;
+            font-size: 1rem;
+            margin-top: 40px;
+            border-top: 4px solid #F39C12;
+        }
+
+        footer p {
+            margin: 0;
+        }   
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Weather Station Dashboard</h1>
+        <p>Real-time dynamic graphs for weather parameters.</p>
+        <a href="index.html">&#8592; Back to Main Dashboard</a>
+    </header>
+
+    <div class="dashboard">
+        <div class="chart-container">
+            <h3>Temperature</h3>
+            <canvas id="temperatureChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Pressure</h3>
+            <canvas id="pressureChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Humidity</h3>
+            <canvas id="humidityChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Altitude</h3>
+            <canvas id="altitudeChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Wind Direction</h3>
+            <canvas id="windDirectionChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Wind Speed</h3>
+            <canvas id="windSpeedChart"></canvas>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Weather Station Dashboard | Designed for real-time weather monitoring</p>
+    </footer>
+
+    <script>
+        const STORAGE_KEY = "weatherStationData";
+    
+        // Function to save chart data to localStorage
+        const saveChartData = () => {
+            const chartData = {
+                temperature: temperatureChart.data.datasets[0].data,
+                humidity: humidityChart.data.datasets[0].data,
+                pressure: pressureChart.data.datasets[0].data,
+                altitude: altitudeChart.data.datasets[0].data,
+                windSpeed: windSpeedChart.data.datasets[0].data,
+                windDirection: windDirectionChart.data.datasets[0].data,
+                labels: temperatureChart.data.labels // Assuming all charts use the same labels
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(chartData));
+        };
+    
+        // Function to load chart data from localStorage
+        const loadChartData = () => {
+            const storedData = localStorage.getItem(STORAGE_KEY);
+            if (storedData) {
+                const { temperature, humidity, pressure, altitude, windSpeed, windDirection, labels } = JSON.parse(storedData);
+                temperatureChart.data.datasets[0].data = temperature || [];
+                humidityChart.data.datasets[0].data = humidity || [];
+                pressureChart.data.datasets[0].data = pressure || [];
+                altitudeChart.data.datasets[0].data = altitude || [];
+                windSpeedChart.data.datasets[0].data = windSpeed || [];
+                windDirectionChart.data.datasets[0].data = windDirection || [];
+                temperatureChart.data.labels = labels || [];
+                humidityChart.data.labels = labels || [];
+                pressureChart.data.labels = labels || [];
+                altitudeChart.data.labels = labels || [];
+                windSpeedChart.data.labels = labels || [];
+                windDirectionChart.data.labels = labels || [];
+                // Update charts with the loaded data
+                temperatureChart.update();
+                humidityChart.update();
+                pressureChart.update();
+                altitudeChart.update();
+                windSpeedChart.update();
+                windDirectionChart.update();
+            }
+        };
+    
+        const fetchWeatherData = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/weather-data');
+                if (!response.ok) throw new Error('Failed to fetch weather data');
+                const data = await response.json();
+                console.log('Fetched Data:', data); // Debug log
+                return data;
+            } catch (error) {
+                console.error(error.message);
+                alert('Unable to fetch weather data. Please check the server.');
+                return null;
+            }
+        };
+    
+        const updateChartsAndData = async () => {
+            const data = await fetchWeatherData();
+            if (data) {
+                const time = new Date().toLocaleTimeString();
+    
+                // Update all charts with the new data
+                const charts = [
+                    { chart: temperatureChart, value: data.temperature },
+                    { chart: humidityChart, value: data.humidity },
+                    { chart: pressureChart, value: data.pressure },
+                    { chart: altitudeChart, value: data.altitude },
+                    { chart: windDirectionChart, value: data.wind_direction },
+                    { chart: windSpeedChart, value: data.wind_speed }
+                ];
+                charts.forEach(({ chart, value }) => {
+                    chart.data.labels.push(time);
+                    chart.data.datasets[0].data.push(value);
+    
+                    if (chart.data.labels.length > 10) {
+                        chart.data.labels.shift();
+                    }
+                    if (chart.data.datasets[0].data.length > 10) {
+                        chart.data.datasets[0].data.shift();
+                    }
+                    chart.update();
+                });
+    
+                saveChartData();
+            }
+        };
+    
+        const createChart = (canvasId, label, color) => {
+            return new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        fill: false,
+                        borderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Time' } },
+                        y: { beginAtZero: false, title: { display: true, text: label } }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        };
+    
+        const windDirectionChart = new Chart(document.getElementById('windDirectionChart'), {
+            type: 'polarArea',
+            data: {
+                labels: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+                datasets: [{
+                    label: 'Wind Direction',
+                    data: [0, 0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)',
+                        'rgba(255, 205, 86, 0.5)',
+                        'rgba(201, 203, 207, 0.5)',
+                        'rgba(99, 255, 132, 0.5)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#ECF0F1' }
+                    }
+                },
+                scales: {
+                    r: {
+                        ticks: { display: true, color: '#BDC3C7' },
+                        grid: { color: 'rgba(255, 255, 255, 0.2)' }
+                    }
+                }
+            }
+        });
+        const temperatureChart = createChart('temperatureChart', 'Temperature (°C)', 'rgba(255, 99, 132, 1)');
+        const humidityChart = createChart('humidityChart', 'Humidity (%)', 'rgba(54, 162, 235, 1)');
+        const pressureChart = createChart('pressureChart', 'Pressure (hPa)', 'rgba(75, 192, 192, 1)');
+        const altitudeChart = createChart('altitudeChart', 'Altitude (m)', 'rgba(153, 102, 255, 1)');
+        const windSpeedChart = createChart('windSpeedChart', 'Wind Speed (km/h)', 'rgba(255, 159, 64, 1)');
+        document.addEventListener('DOMContentLoaded', loadChartData);
+        setInterval(updateChartsAndData, 5000);
+    </script>
+    
+</body>
+</html>
